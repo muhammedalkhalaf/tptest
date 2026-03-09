@@ -105,4 +105,3 @@ GPL-3
 
 ## Author
 
-Dr. Merwan Roudane (merwanroudane920@gmail.com)

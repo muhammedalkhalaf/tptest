@@ -7,10 +7,7 @@ Authors@R: c(
     person("Muhammad", "Alkhalaf", 
            email = "muhammedalkhalaf@gmail.com",
            role = c("aut", "cre", "cph"),
-           comment = c(ORCID = "0009-0002-2677-9246")),
-    person("Merwan", "Roudane",
-           role = "ctb",
-           comment = "Original Stata implementation"))
+           comment = c(ORCID = "0009-0002-2677-9246")))
 Description: Performs turning point and inflection point tests for 
     U-shaped and inverse U-shaped relationships in regression models.
     Implements the Sasabuchi (1980) test as extended by Lind and Mehlum (2010)
