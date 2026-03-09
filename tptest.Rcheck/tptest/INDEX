@@ -1,0 +1,7 @@
+ekc                     Environmental Kuznets Curve Data
+fieller_ci              Fieller Confidence Interval for Ratio of
+                        Coefficients
+tptest                  Universal Turning Point and Inflection Point
+                        Test
+tptest-methods          Methods for tptest Objects
+twolines_test           Simonsohn (2018) Two-Lines Test

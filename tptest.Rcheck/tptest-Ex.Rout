@@ -1,0 +1,252 @@
+
+R version 4.4.3 (2025-02-28 ucrt) -- "Trophy Case"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "tptest"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> options(pager = "console")
+> base::assign(".ExTimings", "tptest-Ex.timings", pos = 'CheckExEnv')
+> base::cat("name\tuser\tsystem\telapsed\n", file=base::get(".ExTimings", pos = 'CheckExEnv'))
+> base::assign(".format_ptime",
++ function(x) {
++   if(!is.na(x[4L])) x[1L] <- x[1L] + x[4L]
++   if(!is.na(x[5L])) x[2L] <- x[2L] + x[5L]
++   options(OutDec = '.')
++   format(x[1L:3L], digits = 7L)
++ },
++ pos = 'CheckExEnv')
+> 
+> ### * </HEADER>
+> library('tptest')
+tptest: Universal Turning Point and Inflection Point Tests
+Version 1.0.1
+Based on Lind & Mehlum (2010) <doi:10.1111/j.1468-0084.2009.00569.x>
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("ekc")
+> ### * ekc
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: ekc
+> ### Title: Environmental Kuznets Curve Data
+> ### Aliases: ekc
+> ### Keywords: datasets
+> 
+> ### ** Examples
+> 
+> data(ekc)
+> head(ekc)
+  country year      gdp    gdp_sq emissions emissions_log
+1       1 2000 33.84183 1145.2696  10.98059      2.396130
+2       1 2001 32.61684 1063.8581  10.86188      2.385259
+3       1 2002 28.91399  836.0191  10.41758      2.343494
+4       1 2003 32.69354 1068.8673  10.06940      2.309501
+5       1 2004 33.57617 1127.3594  11.15589      2.411967
+6       1 2005 35.02589 1226.8130  10.79432      2.379020
+> 
+> # Fit quadratic model
+> fit <- lm(emissions ~ gdp + gdp_sq, data = ekc)
+> summary(fit)
+
+Call:
+lm(formula = emissions ~ gdp + gdp_sq, data = ekc)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-3.1802 -0.7992 -0.0270  0.7952  2.7275 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  4.7041976  0.2719772   17.30   <2e-16 ***
+gdp          0.5405808  0.0240843   22.45   <2e-16 ***
+gdp_sq      -0.0107399  0.0004773  -22.50   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.126 on 497 degrees of freedom
+Multiple R-squared:  0.5066,	Adjusted R-squared:  0.5046 
+F-statistic: 255.1 on 2 and 497 DF,  p-value: < 2.2e-16
+
+> 
+> # Test for inverse U-shape
+> result <- tptest(fit, vars = c("gdp", "gdp_sq"), data = ekc)
+> print(result)
+
+==========================================
+  Turning Point Test (Lind & Mehlum 2010)
+==========================================
+
+Model form: Quadratic: y = b1*x + b2*x^2 
+Data interval: [3.226, 45.95]
+
+Detected shape: Inverse U shape 
+Turning point (x*): 25.167
+  Delta-method SE:  0.224729
+  95% CI:         [24.7254, 25.6085]
+
+------------------------------------------
+Sasabuchi (1980) Test
+------------------------------------------
+                Lower bound    Upper bound
+Interval             3.2261        45.9524
+Slope                0.4713        -0.4465
+t-value             22.3616       -21.4344
+P>|t|                0.0000         0.0000
+
+Overall test: t = 21.4344, p = 0.000000 ***
+-> Strong evidence of Inverse U shape (p < 0.01) 
+------------------------------------------
+*** p<0.01, ** p<0.05, * p<0.10
+
+> 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("ekc", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("tptest")
+> ### * tptest
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: tptest
+> ### Title: Universal Turning Point and Inflection Point Test
+> ### Aliases: tptest
+> 
+> ### ** Examples
+> 
+> # Simulate data with U-shaped relationship
+> set.seed(42)
+> n <- 200
+> x <- runif(n, 1, 10)
+> y <- 50 - 8*x + 0.5*x^2 + rnorm(n, sd = 5)
+> dat <- data.frame(y = y, x = x, x_sq = x^2)
+> 
+> # Fit quadratic model
+> fit <- lm(y ~ x + x_sq, data = dat)
+> 
+> # Test for U-shape
+> result <- tptest(fit, vars = c("x", "x_sq"), data = dat)
+> print(result)
+
+==========================================
+  Turning Point Test (Lind & Mehlum 2010)
+==========================================
+
+Model form: Quadratic: y = b1*x + b2*x^2 
+Data interval: [1.002, 9.9]
+
+Detected shape: U shape 
+Turning point (x*): 8.0909
+  Delta-method SE:  0.336815
+  95% CI:         [7.42667, 8.75513]
+
+------------------------------------------
+Sasabuchi (1980) Test
+------------------------------------------
+                Lower bound    Upper bound
+Interval             1.0022         9.9000
+Slope               -6.8191         1.7403
+t-value            -12.9977         3.3549
+P>|t|                0.0000         0.0005
+
+Overall test: t = 3.3549, p = 0.000476 ***
+-> Strong evidence of U shape (p < 0.01) 
+------------------------------------------
+*** p<0.01, ** p<0.05, * p<0.10
+
+> 
+> ## No test: 
+> # With Fieller interval and two-lines test
+> result2 <- tptest(fit, vars = c("x", "x_sq"),
++                   fieller = TRUE, twolines = TRUE,
++                   data = dat, depvar = "y")
+> summary(result2)
+
+==========================================
+  Turning Point Test (Lind & Mehlum 2010)
+==========================================
+
+Model form: Quadratic: y = b1*x + b2*x^2 
+Data interval: [1.002, 9.9]
+
+Detected shape: U shape 
+Turning point (x*): 8.0909
+  Delta-method SE:  0.336815
+  95% CI:         [7.42667, 8.75513]
+
+------------------------------------------
+Sasabuchi (1980) Test
+------------------------------------------
+                Lower bound    Upper bound
+Interval             1.0022         9.9000
+Slope               -6.8191         1.7403
+t-value            -12.9977         3.3549
+P>|t|                0.0000         0.0005
+
+Overall test: t = 3.3549, p = 0.000476 ***
+-> Strong evidence of U shape (p < 0.01) 
+------------------------------------------
+*** p<0.01, ** p<0.05, * p<0.10
+
+Fieller Confidence Interval
+------------------------------------------
+95% CI: [7.544214, 8.933135]
+
+Simonsohn (2018) Two-Lines Test
+------------------------------------------
+Split at x* = 8.0909
+
+           Left (x <= x*)    Right (x > x*)
+N                     158                 42
+Slope             -3.3449            -1.3161
+t-value          -18.3487            -0.8106
+P>|t|              0.0000             0.4224
+
+Joint p-value: 1.000000 
+-> Two-lines test does not confirm U shape 
+
+> ## End(No test)
+> 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("tptest", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> ### * <FOOTER>
+> ###
+> cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  0.16 0.01 0.19 NA NA 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

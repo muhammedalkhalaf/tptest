@@ -1,0 +1,41 @@
+Package: tptest
+Type: Package
+Title: Universal Turning Point and Inflection Point Tests
+Version: 1.0.1
+Date: 2026-03-07
+Authors@R: c(
+    person("Muhammad", "Alkhalaf", 
+           email = "muhammedalkhalaf@gmail.com",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0009-0002-2677-9246")),
+    person("Merwan", "Roudane",
+           role = "ctb",
+           comment = "Original Stata implementation"))
+Description: Performs turning point and inflection point tests for 
+    U-shaped and inverse U-shaped relationships in regression models.
+    Implements the Sasabuchi (1980) test as extended by Lind and Mehlum (2010)
+    with support for quadratic, cubic, log-quadratic, and inverse functional
+    forms. Features include delta-method standard errors, Fieller confidence
+    intervals, Simonsohn (2018) two-lines test, and parametric bootstrap.
+    Designed for post-estimation analysis of linear models, panel models,
+    and quantile regression.
+    References: Lind and Mehlum (2010) <doi:10.1111/j.1468-0084.2009.00569.x>;
+    Sasabuchi (1980); Fieller (1954) <doi:10.1111/j.2517-6161.1954.tb00159.x>.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends: R (>= 4.0.0)
+Imports: stats, graphics
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown, lmtest, sandwich, plm,
+        quantreg
+URL: https://github.com/muhammedalkhalaf/tptest
+BugReports: https://github.com/muhammedalkhalaf/tptest/issues
+NeedsCompilation: no
+Packaged: 2026-03-08 10:14:25 UTC; acad_
+Author: Muhammad Alkhalaf [aut, cre, cph]
+    (<https://orcid.org/0009-0002-2677-9246>),
+  Merwan Roudane [ctb] (Original Stata implementation)
+Maintainer: Muhammad Alkhalaf <muhammedalkhalaf@gmail.com>
+Built: R 4.4.3; ; 2026-03-08 10:14:53 UTC; windows

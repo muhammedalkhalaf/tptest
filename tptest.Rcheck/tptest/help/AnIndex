@@ -1,0 +1,10 @@
+coef.tptest	tptest-methods
+confint.tptest	tptest-methods
+ekc	ekc
+fieller_ci	fieller_ci
+plot.tptest	tptest-methods
+print.tptest	tptest-methods
+summary.tptest	tptest-methods
+tptest	tptest
+tptest-methods	tptest-methods
+twolines_test	twolines_test
