@@ -1,7 +1,7 @@
 Package: tptest
 Type: Package
 Title: Universal Turning Point and Inflection Point Test
-Version: 1.0.0
+Version: 1.0.3
 Authors@R: person("Muhammad", "Alkhalaf", email = "muhammedalkhalaf@gmail.com",
     role = c("aut", "cre", "cph"),
     comment = c(ORCID = "0009-0002-2677-9246"))
@@ -25,3 +25,4 @@ Suggests:
 Config/testthat/edition: 3
 URL: https://github.com/muhammedalkhalaf/tptest
 BugReports: https://github.com/muhammedalkhalaf/tptest/issues
+
