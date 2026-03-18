@@ -60,3 +60,6 @@
 \description{
 Print, summary, plot, and accessor methods for \code{tptest} objects.
 }
+\value{
+For \code{print} and \code{summary}: the input object, returned invisibly. For \code{plot}: no return value, called for side effects (generates plots).
+}

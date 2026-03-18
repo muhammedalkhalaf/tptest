@@ -35,6 +35,9 @@ The true data generating process follows an inverse U-shape with:
 \item Year-specific trends
 }
 }
+\value{
+A data frame containing Environmental Kuznets Curve data with columns for income and emissions.
+}
 \examples{
 data(ekc)
 head(ekc)
