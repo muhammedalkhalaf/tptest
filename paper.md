@@ -1,5 +1,5 @@
 ---
-title: 'R Packages for GARCH-Based Unit Root Testing, Residual-Based FM-VAR Estimation, and Turning Point Analysis'
+title: 'tptest, garchur, and rbfmvar: R Packages for Turning Point Tests, GARCH Unit Roots, and Fully Modified VAR'
 tags:
   - R
   - econometrics
@@ -23,77 +23,50 @@ bibliography: paper.bib
 
 # Summary
 
-We present three R packages that address distinct but important gaps in the econometric toolkit: `garchur` for unit root testing under GARCH errors with endogenous structural breaks, `rbfmvar` for Residual-Based Fully Modified VAR estimation accommodating mixed integration orders, and `tptest` for testing U-shaped and inverse U-shaped relationships in regression models. These packages implement methodologies that are widely cited in applied research but previously lacked dedicated R implementations.
+Three R packages address gaps in the applied econometrics toolkit. `tptest` tests for U-shaped and inverse U-shaped relationships using the @Sasabuchi1980 likelihood-ratio-like procedure formalized by @LindMehlum2010, with extensions to cubic, log-quadratic, and inverse forms, Fieller confidence intervals, and the @Simonsohn2018 two-lines test. `garchur` implements the @NarayanLiu2015 trend-GARCH(1,1) unit root test with endogenous structural breaks. `rbfmvar` estimates the Residual-Based Fully Modified VAR of @Chang2000, extending @Phillips1995, for systems with unknown mixtures of I(0), I(1), and I(2) variables. All packages are open-source under GPL-3.
 
 # Statement of Need
 
-Applied econometric research frequently encounters three challenges that standard tools handle inadequately:
+**Turning point tests.** The Environmental Kuznets Curve, the Laffer curve, and other economic theories predict nonlinear relationships with an extreme point. A significant quadratic coefficient does not establish a U-shape or inverse U-shape over the relevant data range; the @LindMehlum2010 test provides proper joint inference on slopes at both interval endpoints. No existing R package implements this test with extensions to cubic, log-quadratic, and inverse functional forms.
 
-1. **Conditional heteroskedasticity in unit root testing**: Financial and energy time series often exhibit GARCH-type volatility clustering. Standard ADF tests assume homoskedastic errors, leading to size distortions and power losses. The @NarayanLiu2015 trend-GARCH unit root test with endogenous structural breaks addresses both issues simultaneously, but no R package implements it.
+**GARCH unit root testing.** Financial and energy time series exhibit volatility clustering. Standard ADF tests assume homoskedastic errors, producing size distortions under GARCH effects. The @NarayanLiu2015 test jointly models GARCH(1,1) errors and endogenous structural breaks, but no R implementation exists.
 
-2. **VAR estimation with unknown integration orders**: When a VAR system contains an unknown mixture of I(0), I(1), and I(2) variables, standard OLS-based VAR estimation produces biased inference. The Residual-Based Fully Modified VAR (RBFM-VAR) of @Chang2000, extending the @Phillips1995 FM-VAR, applies nonparametric corrections that yield valid inference regardless of integration orders. This method is particularly valuable when pre-testing for unit roots is inconclusive.
-
-3. **Testing for nonlinear (U-shaped) relationships**: The Environmental Kuznets Curve, the Laffer curve, and numerous other economic theories predict quadratic or other nonlinear functional forms with turning points. While ad hoc tests of quadratic coefficient significance are common, the formal @LindMehlum2010 test provides proper inference on whether a true extreme point exists within the data range. No comprehensive R package implements this test with extensions to cubic, log-quadratic, and inverse forms.
+**VAR with mixed integration orders.** When a VAR system contains an unknown mixture of I(0), I(1), and I(2) variables, standard OLS produces biased inference. The RBFM-VAR of @Chang2000 applies nonparametric long-run variance corrections yielding mixed-normal asymptotics regardless of integration orders, but no R package implements it.
 
 # Packages
 
+## tptest
+
+Tests for U-shaped and inverse U-shaped relationships as a post-estimation command. Extends @LindMehlum2010 to quadratic, cubic, log-quadratic, and inverse forms. Implements the @Sasabuchi1980 joint slope test, delta-method and Fieller confidence intervals, and the @Simonsohn2018 two-lines robustness test.
+
+```r
+library(tptest)
+fit <- lm(y ~ x + I(x^2), data = ekc_data)
+
+result <- tptest(fit, var1 = "x", var2 = "I(x^2)",
+                 model = "quad", fieller = TRUE,
+                 twolines = TRUE, data = ekc_data)
+print(result)
+```
+
 ## garchur
 
-Implements the trend-GARCH(1,1) unit root test with endogenous structural breaks proposed by @NarayanLiu2015. The procedure estimates a mean equation with a linear trend and level-shift dummies at endogenously determined break dates while allowing for GARCH(1,1) conditional heteroskedasticity. Supports up to three breaks with critical values interpolated from Monte Carlo simulation tables.
+Implements the trend-GARCH(1,1) unit root test of @NarayanLiu2015 with endogenous structural breaks. Supports constant-only (`"c"`) and constant-plus-trend (`"ct"`) specifications with up to three breaks. Critical values are interpolated from Monte Carlo simulation tables.
 
 ```r
 library(garchur)
-result <- garchur(y, max_breaks = 2, trim = 0.15)
-summary(result)
-# Output includes:
-# - GARCH(1,1) parameter estimates (omega, alpha, beta)
-# - Unit root t-statistic
-# - Endogenous break dates
-# - Critical values at 1%, 5%, 10%
+result <- garchur(y, breaks = 2, model = "ct", trim = 0.15)
+print(result)
 ```
 
 ## rbfmvar
 
-Implements the Residual-Based Fully Modified VAR (RBFM-VAR) estimator of @Chang2000 for VAR models containing an unknown mixture of I(0), I(1), and I(2) components. The procedure applies a nonparametric long-run variance correction to OLS residuals, enabling valid inference without prior knowledge of integration orders. Supports lag selection by AIC, BIC, and Hannan-Quinn criteria, modified Wald Granger non-causality tests, and impulse response functions.
+Estimates the Residual-Based Fully Modified VAR of @Chang2000 for systems with unknown integration orders. Supports lag selection by AIC/BIC/HQ, Bartlett/Parzen/quadratic-spectral kernels for long-run variance estimation, modified Wald Granger non-causality tests, and Cholesky impulse response functions.
 
 ```r
 library(rbfmvar)
-# Estimate RBFM-VAR without specifying integration orders
-result <- rbfmvar(data = macro_data, vars = c("gdp", "inflation",
-                  "interest_rate"), lag_select = "bic")
-summary(result)
-
-# Modified Wald Granger causality test
-granger <- rbfm_granger(result, cause = "inflation",
-                        effect = "gdp")
-
-# Impulse response functions
-irf <- rbfm_irf(result, impulse = "interest_rate",
-                response = "gdp", horizon = 20)
-plot(irf)
-```
-
-## tptest
-
-Tests for U-shaped and inverse U-shaped (hump-shaped) nonlinear relationships in regression models. Extends @LindMehlum2010 to quadratic, cubic, log-quadratic, and inverse functional forms. Implements the @Sasabuchi1980 joint slope test, delta-method standard errors for the turning point, Fieller confidence intervals, and the @Simonsohn2018 two-lines robustness test. Works as a post-estimation command after any model returning coefficient vectors and variance-covariance matrices.
-
-```r
-library(tptest)
-# Fit a quadratic model
-model <- lm(y ~ x + I(x^2), data = ekc_data)
-
-# Test for U-shape or inverse U-shape
-result <- tptest(model, var = "x", form = "quadratic")
-summary(result)
-# Output includes:
-# - Sasabuchi joint slope test (H0: monotone or inverse U)
-# - Estimated turning point with delta-method SE
-# - Fieller 95% confidence interval
-# - Whether turning point is within data range
-
-# Two-lines robustness test
-robust <- tptest(model, var = "x", form = "quadratic",
-                 two_lines = TRUE)
+result <- rbfmvar(macro_data, lags = 2, kernel = "bartlett")
+print(result)
 ```
 
 # References
