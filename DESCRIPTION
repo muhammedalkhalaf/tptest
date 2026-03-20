@@ -1,7 +1,8 @@
 Package: tptest
 Type: Package
 Title: Universal Turning Point and Inflection Point Test
-Version: 1.0.3
+Version: 1.0.4
+Date: 2026-03-20
 Authors@R: person("Muhammad", "Alkhalaf", email = "muhammedalkhalaf@gmail.com",
     role = c("aut", "cre", "cph"),
     comment = c(ORCID = "0009-0002-2677-9246"))
