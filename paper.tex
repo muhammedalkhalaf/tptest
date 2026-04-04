@@ -1,0 +1,170 @@
+\section{Summary}\label{summary}
+
+We present three R packages that address distinct but important gaps in
+the econometric toolkit: \texttt{garchur} for unit root testing under
+GARCH errors with endogenous structural breaks, \texttt{rbfmvar} for
+Residual-Based Fully Modified VAR estimation accommodating mixed
+integration orders, and \texttt{tptest} for testing U-shaped and inverse
+U-shaped relationships in regression models. These packages implement
+methodologies that are widely cited in applied research but previously
+lacked dedicated R implementations.
+
+\section{Statement of Need}\label{statement-of-need}
+
+Applied econometric research frequently encounters three challenges that
+standard tools handle inadequately:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Conditional heteroskedasticity in unit root testing}:
+  Financial and energy time series often exhibit GARCH-type volatility
+  clustering. Standard ADF tests assume homoskedastic errors, leading to
+  size distortions and power losses. The Narayan and Liu (2015)
+  trend-GARCH unit root test with endogenous structural breaks addresses
+  both issues simultaneously, but no R package implements it.
+\item
+  \textbf{VAR estimation with unknown integration orders}: When a VAR
+  system contains an unknown mixture of I(0), I(1), and I(2) variables,
+  standard OLS-based VAR estimation produces biased inference. The
+  Residual-Based Fully Modified VAR (RBFM-VAR) of Chang (2000),
+  extending the Phillips (1995) FM-VAR, applies nonparametric
+  corrections that yield valid inference regardless of integration
+  orders. This method is particularly valuable when pre-testing for unit
+  roots is inconclusive.
+\item
+  \textbf{Testing for nonlinear (U-shaped) relationships}: The
+  Environmental Kuznets Curve, the Laffer curve, and numerous other
+  economic theories predict quadratic or other nonlinear functional
+  forms with turning points. While ad hoc tests of quadratic coefficient
+  significance are common, the formal Lind and Mehlum (2010) test
+  provides proper inference on whether a true extreme point exists
+  within the data range. No comprehensive R package implements this test
+  with extensions to cubic, log-quadratic, and inverse forms.
+\end{enumerate}
+
+\section{Packages}\label{packages}
+
+\subsection{garchur}\label{garchur}
+
+Implements the trend-GARCH(1,1) unit root test with endogenous
+structural breaks proposed by Narayan and Liu (2015). The procedure
+estimates a mean equation with a linear trend and level-shift dummies at
+endogenously determined break dates while allowing for GARCH(1,1)
+conditional heteroskedasticity. Supports up to three breaks with
+critical values interpolated from Monte Carlo simulation tables.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(garchur)}
+\NormalTok{result }\OtherTok{\textless{}{-}} \FunctionTok{garchur}\NormalTok{(y, }\AttributeTok{max\_breaks =} \DecValTok{2}\NormalTok{, }\AttributeTok{trim =} \FloatTok{0.15}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(result)}
+\CommentTok{\# Output includes:}
+\CommentTok{\# {-} GARCH(1,1) parameter estimates (omega, alpha, beta)}
+\CommentTok{\# {-} Unit root t{-}statistic}
+\CommentTok{\# {-} Endogenous break dates}
+\CommentTok{\# {-} Critical values at 1\%, 5\%, 10\%}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{rbfmvar}\label{rbfmvar}
+
+Implements the Residual-Based Fully Modified VAR (RBFM-VAR) estimator of
+Chang (2000) for VAR models containing an unknown mixture of I(0), I(1),
+and I(2) components. The procedure applies a nonparametric long-run
+variance correction to OLS residuals, enabling valid inference without
+prior knowledge of integration orders. Supports lag selection by AIC,
+BIC, and Hannan-Quinn criteria, modified Wald Granger non-causality
+tests, and impulse response functions.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(rbfmvar)}
+\CommentTok{\# Estimate RBFM{-}VAR without specifying integration orders}
+\NormalTok{result }\OtherTok{\textless{}{-}} \FunctionTok{rbfmvar}\NormalTok{(}\AttributeTok{data =}\NormalTok{ macro\_data, }\AttributeTok{vars =} \FunctionTok{c}\NormalTok{(}\StringTok{"gdp"}\NormalTok{, }\StringTok{"inflation"}\NormalTok{,}
+                  \StringTok{"interest\_rate"}\NormalTok{), }\AttributeTok{lag\_select =} \StringTok{"bic"}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(result)}
+
+\CommentTok{\# Modified Wald Granger causality test}
+\NormalTok{granger }\OtherTok{\textless{}{-}} \FunctionTok{rbfm\_granger}\NormalTok{(result, }\AttributeTok{cause =} \StringTok{"inflation"}\NormalTok{,}
+                        \AttributeTok{effect =} \StringTok{"gdp"}\NormalTok{)}
+
+\CommentTok{\# Impulse response functions}
+\NormalTok{irf }\OtherTok{\textless{}{-}} \FunctionTok{rbfm\_irf}\NormalTok{(result, }\AttributeTok{impulse =} \StringTok{"interest\_rate"}\NormalTok{,}
+                \AttributeTok{response =} \StringTok{"gdp"}\NormalTok{, }\AttributeTok{horizon =} \DecValTok{20}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(irf)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{tptest}\label{tptest}
+
+Tests for U-shaped and inverse U-shaped (hump-shaped) nonlinear
+relationships in regression models. Extends Lind and Mehlum (2010) to
+quadratic, cubic, log-quadratic, and inverse functional forms.
+Implements the Sasabuchi (1980) joint slope test, delta-method standard
+errors for the turning point, Fieller confidence intervals, and the
+Simonsohn (2018) two-lines robustness test. Works as a post-estimation
+command after any model returning coefficient vectors and
+variance-covariance matrices.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tptest)}
+\CommentTok{\# Fit a quadratic model}
+\NormalTok{model }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x }\SpecialCharTok{+} \FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{), }\AttributeTok{data =}\NormalTok{ ekc\_data)}
+
+\CommentTok{\# Test for U{-}shape or inverse U{-}shape}
+\NormalTok{result }\OtherTok{\textless{}{-}} \FunctionTok{tptest}\NormalTok{(model, }\AttributeTok{var =} \StringTok{"x"}\NormalTok{, }\AttributeTok{form =} \StringTok{"quadratic"}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(result)}
+\CommentTok{\# Output includes:}
+\CommentTok{\# {-} Sasabuchi joint slope test (H0: monotone or inverse U)}
+\CommentTok{\# {-} Estimated turning point with delta{-}method SE}
+\CommentTok{\# {-} Fieller 95\% confidence interval}
+\CommentTok{\# {-} Whether turning point is within data range}
+
+\CommentTok{\# Two{-}lines robustness test}
+\NormalTok{robust }\OtherTok{\textless{}{-}} \FunctionTok{tptest}\NormalTok{(model, }\AttributeTok{var =} \StringTok{"x"}\NormalTok{, }\AttributeTok{form =} \StringTok{"quadratic"}\NormalTok{,}
+                 \AttributeTok{two\_lines =} \ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\section*{References}\label{references}
+\addcontentsline{toc}{section}{References}
+
+\protect\phantomsection\label{refs}
+\begin{CSLReferences}{1}{1}
+\bibitem[\citeproctext]{ref-Chang2000}
+Chang, Yoosoon. 2000. {``Bootstrap Unit Root Tests in Panels with
+Cross-Sectional Dependency.''} \emph{Econometric Theory} 16 (6):
+1069--74. \url{https://doi.org/10.1017/S0266466600166017}.
+
+\bibitem[\citeproctext]{ref-LindMehlum2010}
+Lind, Jo Thori, and Halvor Mehlum. 2010. {``With or Without {U}? The
+Appropriate Test for a {U}-Shaped Relationship.''} \emph{Oxford Bulletin
+of Economics and Statistics} 72 (1): 109--18.
+\url{https://doi.org/10.1111/j.1468-0084.2009.00569.x}.
+
+\bibitem[\citeproctext]{ref-NarayanLiu2015}
+Narayan, Paresh Kumar, and Ruipeng Liu. 2015. {``A {GARCH} Model for
+Testing Market Efficiency.''} \emph{Journal of International Financial
+Markets, Institutions and Money} 41: 121--38.
+\url{https://doi.org/10.1016/j.eneco.2014.11.021}.
+
+\bibitem[\citeproctext]{ref-Phillips1995}
+Phillips, Peter C. B. 1995. {``Fully Modified Least Squares and Vector
+Autoregression.''} \emph{Econometrica} 63 (5): 1023--78.
+\url{https://doi.org/10.2307/2171721}.
+
+\bibitem[\citeproctext]{ref-Sasabuchi1980}
+Sasabuchi, Syoichi. 1980. {``A Test of a Multivariate Normal Mean with
+Composite Hypotheses Determined by Linear Inequalities.''}
+\emph{Biometrika} 67 (2): 429--39.
+\url{https://doi.org/10.1093/biomet/67.2.429}.
+
+\bibitem[\citeproctext]{ref-Simonsohn2018}
+Simonsohn, Uri. 2018. {``Two Lines: A Valid Alternative to the Invalid
+Testing of {U}-Shaped Relationships with Quadratic Regressions.''}
+\emph{Advances in Methods and Practices in Psychological Science} 1 (4):
+538--55. \url{https://doi.org/10.1177/2515245918805755}.
+
+\end{CSLReferences}
