@@ -11,19 +11,28 @@ NULL
 print.tptest <- function(x, ...) {
   cat("\n")
   cat("==========================================\n")
-  cat("  Turning Point Test (Lind & Mehlum 2010)\n")
+  cat("  Turning Point Test (Lind and Mehlum 2010)\n")
   cat("==========================================\n\n")
 
   # Model info
   cat("Model form:", .form_label(x$model_form), "\n")
-  cat("Data interval: [", format(x$bounds["min"], digits = 4), ", ",
-      format(x$bounds["max"], digits = 4), "]\n", sep = "")
+  if (x$model_form == "logquadratic") {
+    cat("Interval (ln x): [", format(x$bounds["min"], digits = 4), ", ",
+        format(x$bounds["max"], digits = 4), "]",
+        "   (levels of x: [", format(x$bounds_levels["min"], digits = 4), ", ",
+        format(x$bounds_levels["max"], digits = 4), "])\n", sep = "")
+  } else {
+    cat("Data interval: [", format(x$bounds["min"], digits = 4), ", ",
+        format(x$bounds["max"], digits = 4), "]\n", sep = "")
+  }
+  cat("Distribution:", if (is.null(x$df)) "normal" else paste0("t(", format(x$df), ")"), "\n")
   cat("\n")
 
   # Shape and turning point
-  cat("Detected shape:", x$shape, "\n")
+  cat("Fitted shape on the interval:", x$shape, "\n")
   if (!is.na(x$tp)) {
-    cat("Turning point (x*): ", format(x$tp, digits = 6), "\n", sep = "")
+    tp_label <- if (x$model_form == "logquadratic") "Turning point (x*, levels): " else "Turning point (x*): "
+    cat(tp_label, format(x$tp, digits = 6), "\n", sep = "")
     if (!is.null(x$tp_se) && !is.na(x$tp_se)) {
       cat("  Delta-method SE:  ", format(x$tp_se, digits = 6), "\n", sep = "")
     }
@@ -31,6 +40,10 @@ print.tptest <- function(x, ...) {
       cat("  ", round(x$level * 100), "% CI:         [",
           format(x$tp_ci[1], digits = 6), ", ",
           format(x$tp_ci[2], digits = 6), "]\n", sep = "")
+    }
+    if (x$model_form == "logquadratic") {
+      cat("  On the ln x scale: ", format(x$tp_log, digits = 6),
+          " (SE ", format(x$tp_log_se, digits = 6), ")\n", sep = "")
     }
   } else {
     cat("Turning point: not found\n")
@@ -55,21 +68,39 @@ print.tptest <- function(x, ...) {
   cat(sprintf("Interval        %11.4f    %11.4f\n", x$bounds["min"], x$bounds["max"]))
   cat(sprintf("Slope           %11.4f    %11.4f\n",
               x$sasabuchi$slope_min, x$sasabuchi$slope_max))
+  cat(sprintf("t-value         %11.4f    %11.4f\n",
+              x$sasabuchi$t_min, x$sasabuchi$t_max))
 
-  if (!is.na(x$sasabuchi$t_overall)) {
-    cat(sprintf("t-value         %11.4f    %11.4f\n",
-                x$sasabuchi$t_min, x$sasabuchi$t_max))
-    cat(sprintf("P>|t|           %11.4f    %11.4f\n",
+  if (x$model_form == "cubic" && nrow(x$sasabuchi$segments) > 1) {
+    cat("\nThe slope of a cubic is not monotone across an inflection point, so\n")
+    cat("the two-endpoint test of Lind and Mehlum (2010) is applied on each\n")
+    cat("sub-interval on which the slope is monotone, split at the estimated\n")
+    cat("inflection point treated as fixed (package extension, not part of\n")
+    cat("Lind and Mehlum 2010; the sub-interval tests do not have exact size):\n\n")
+    sg <- x$sasabuchi$segments
+    cat(sprintf("  %-9s %-9s %-9s %-9s %-16s %-9s %s\n",
+                "Lower", "Upper", "t(lower)", "t(upper)", "Alternative", "t", "p (one-sided)"))
+    for (k in seq_len(nrow(sg))) {
+      cat(sprintf("  %-9.4f %-9.4f %-9.4f %-9.4f %-16s %-9.4f %.6f %s\n",
+                  sg$lower[k], sg$upper[k], sg$t_lower[k], sg$t_upper[k],
+                  sg$alternative[k], sg$statistic[k], sg$p_value[k],
+                  .get_stars(sg$p_value[k])))
+    }
+  } else {
+    cat(sprintf("P (one-sided)   %11.4f    %11.4f\n",
                 x$sasabuchi$p_min, x$sasabuchi$p_max))
     cat("\n")
+    cat("Tested alternative:", x$alternative, "\n")
 
     stars <- .get_stars(x$sasabuchi$p_overall)
     cat(sprintf("Overall test: t = %.4f, p = %.6f %s\n",
                 x$sasabuchi$t_overall, x$sasabuchi$p_overall, stars))
 
-    cat(.interpret_pvalue(x$sasabuchi$p_overall, x$shape), "\n")
-  } else {
-    cat("\nExtremum outside interval - trivial failure to reject H0\n")
+    if (isTRUE(x$sasabuchi$outside)) {
+      cat("-> Extremum outside the interval: H0 (monotone or opposite shape) cannot be rejected\n")
+    } else {
+      cat(.interpret_pvalue(x$sasabuchi$p_overall, x$alternative), "\n")
+    }
   }
 
   cat("------------------------------------------\n")
@@ -88,17 +119,34 @@ summary.tptest <- function(object, ...) {
 
   # Fieller interval
   if (!is.null(object$fieller)) {
-    cat("Fieller Confidence Interval\n")
+    fi <- object$fieller
+    pos <- object$model_form %in% c("inverse", "logquadratic")
+    lo_open <- if (pos) "(0" else "(-Inf"
+    cat("Fieller Confidence Set\n")
     cat("------------------------------------------\n")
-    if (object$fieller$type == "bounded") {
-      cat(sprintf("%d%% CI: [%.6f, %.6f]\n",
-                  round(object$level * 100), object$fieller$lo, object$fieller$hi))
-    } else if (object$fieller$type == "unbounded") {
-      cat("Interval: (-Inf, +Inf) - unbounded\n")
-    } else if (object$fieller$type == "entire_real_line") {
-      cat("Interval: (-Inf, +Inf) - entire real line\n")
+    cat("Distribution:", if (is.null(object$df)) "normal" else paste0("t(", format(object$df), ")"), "\n")
+    lev <- round(object$level * 100)
+    if (fi$type == "bounded") {
+      if (pos && fi$lo == 0) {
+        cat(sprintf("%d%% set: (0, %.6f]\n", lev, fi$hi))
+      } else {
+        cat(sprintf("%d%% CI: [%.6f, %.6f]\n", lev, fi$lo, fi$hi))
+      }
+    } else if (fi$type == "two_rays") {
+      cat(sprintf("%d%% set: %s, %.6f] U [%.6f, Inf) - union of two rays\n", lev, lo_open, fi$lo, fi$hi))
+      cat("(the denominator coefficient is not significant at this level)\n")
+    } else if (fi$type == "ray") {
+      if (is.infinite(fi$hi)) {
+        cat(sprintf("%d%% set: [%.6f, Inf) - half-line\n", lev, fi$lo))
+      } else {
+        cat(sprintf("%d%% set: %s, %.6f] - half-line\n", lev, lo_open, fi$hi))
+      }
+    } else if (fi$type == "unbounded") {
+      cat(sprintf("%d%% set: %s, Inf) - whole line, uninformative\n", lev, lo_open))
+    } else if (fi$type == "empty") {
+      cat("Fieller set: empty (no positive turning point is compatible with the data)\n")
     } else {
-      cat("Fieller interval: cannot be computed\n")
+      cat("Fieller interval: not available for this form\n")
     }
     cat("\n")
   }
@@ -108,7 +156,11 @@ summary.tptest <- function(object, ...) {
     tl <- object$twolines
     cat("Simonsohn (2018) Two-Lines Test\n")
     cat("------------------------------------------\n")
-    cat(sprintf("Split at x* = %.4f\n\n", object$tp))
+    if (object$model_form == "logquadratic") {
+      cat(sprintf("Split at ln(x*) = %.4f\n\n", object$tp_log))
+    } else {
+      cat(sprintf("Split at x* = %.4f\n\n", object$tp))
+    }
     cat(sprintf("           Left (x <= x*)    Right (x > x*)\n"))
     cat(sprintf("N          %14d    %15d\n", tl$n_l, tl$n_r))
     cat(sprintf("Slope      %14.4f    %15.4f\n", tl$slope_l, tl$slope_r))
@@ -152,7 +204,7 @@ summary.tptest <- function(object, ...) {
 #' @param lwd Line width
 #' @param n Number of points for plotting curve
 #' @export
-plot.tptest <- function(x, main = NULL, xlab = "x", ylab = "Marginal Effect",
+plot.tptest <- function(x, main = NULL, xlab = NULL, ylab = "Marginal Effect",
                         col.line = "steelblue", col.tp = "red",
                         col.ci = grDevices::rgb(0.2, 0.4, 0.8, 0.2),
                         lwd = 2, n = 200, ...) {
@@ -167,8 +219,9 @@ plot.tptest <- function(x, main = NULL, xlab = "x", ylab = "Marginal Effect",
   b2 <- b["b2"]
   b3 <- if (length(b) == 3) b["b3"] else 0
 
-  # Generate x values
+  # Generate x values (regressor scale; ln x for the log-quadratic form)
   x_seq <- seq(x$bounds["min"], x$bounds["max"], length.out = n)
+  if (is.null(xlab)) xlab <- if (x$model_form == "logquadratic") "ln(x)" else "x"
 
   # Compute marginal effect (derivative)
   if (x$model_form == "quadratic") {
@@ -178,7 +231,7 @@ plot.tptest <- function(x, main = NULL, xlab = "x", ylab = "Marginal Effect",
   } else if (x$model_form == "inverse") {
     me <- b1 - b2 / (x_seq^2)
   } else if (x$model_form == "logquadratic") {
-    me <- b1 + 2 * b2 * log(x_seq)
+    me <- b1 + 2 * b2 * x_seq
   }
 
   if (is.null(main)) {
@@ -195,16 +248,17 @@ plot.tptest <- function(x, main = NULL, xlab = "x", ylab = "Marginal Effect",
   # Add the curve
   graphics::lines(x_seq, me, col = col.line, lwd = lwd)
 
-  # Mark turning point
-  if (!is.na(x$tp)) {
-    tp_x <- x$tp
+  # Mark turning point (on the plotted scale)
+  tp_plot <- if (x$model_form == "logquadratic") x$tp_log else x$tp
+  ci_plot <- if (x$model_form == "logquadratic" && !is.null(x$tp_ci)) log(x$tp_ci) else x$tp_ci
+  if (!is.na(tp_plot)) {
     tp_y <- 0  # At the turning point, marginal effect = 0
 
-    graphics::points(tp_x, tp_y, pch = 19, col = col.tp, cex = 1.5)
+    graphics::points(tp_plot, tp_y, pch = 19, col = col.tp, cex = 1.5)
 
     # Add CI if available
-    if (!is.null(x$tp_ci) && !any(is.na(x$tp_ci))) {
-      graphics::arrows(x$tp_ci[1], tp_y, x$tp_ci[2], tp_y,
+    if (!is.null(ci_plot) && !any(is.na(ci_plot))) {
+      graphics::arrows(ci_plot[1], tp_y, ci_plot[2], tp_y,
                        angle = 90, code = 3, length = 0.1, col = col.tp, lwd = 2)
     }
   }
@@ -212,7 +266,7 @@ plot.tptest <- function(x, main = NULL, xlab = "x", ylab = "Marginal Effect",
   # Add legend
   legend_text <- c(
     "Marginal Effect",
-    paste0("Turning Point = ", format(x$tp, digits = 4))
+    paste0("Turning Point = ", format(tp_plot, digits = 4))
   )
   if (!is.null(x$sasabuchi$p_overall) && !is.na(x$sasabuchi$p_overall)) {
     legend_text <- c(legend_text,
@@ -243,11 +297,15 @@ coef.tptest <- function(object, ...) {
 confint.tptest <- function(object, parm = NULL, level = NULL, ...) {
   if (is.null(level)) level <- object$level
 
-  # If different level requested, recompute
+  # If different level requested, recompute with the same distribution
+  # (t with the model df, or normal) as used in tptest()
   if (!is.null(object$tp_ci) && level == object$level) {
     ci <- object$tp_ci
+  } else if (object$model_form == "logquadratic" && !is.na(object$tp_log_se)) {
+    crit <- .get_critical(level, object$df)
+    ci <- exp(c(object$tp_log - crit * object$tp_log_se, object$tp_log + crit * object$tp_log_se))
   } else if (!is.na(object$tp_se)) {
-    crit <- stats::qnorm(1 - (1 - level) / 2)
+    crit <- .get_critical(level, object$df)
     ci <- c(object$tp - crit * object$tp_se, object$tp + crit * object$tp_se)
   } else {
     ci <- c(NA, NA)
@@ -267,7 +325,7 @@ confint.tptest <- function(object, parm = NULL, level = NULL, ...) {
     "quadratic" = "Quadratic: y = b1*x + b2*x^2",
     "cubic" = "Cubic: y = b1*x + b2*x^2 + b3*x^3",
     "inverse" = "Inverse: y = b1*x + b2/x",
-    "logquadratic" = "Log-Quadratic: ln(y) = b1*ln(x) + b2*[ln(x)]^2",
+    "logquadratic" = "Log-Quadratic: y = b1*ln(x) + b2*[ln(x)]^2",
     form
   )
 }
@@ -285,7 +343,7 @@ confint.tptest <- function(object, parm = NULL, level = NULL, ...) {
 
 #' @noRd
 .interpret_pvalue <- function(p, shape) {
-  if (is.na(p)) return("")
+  if (is.null(p) || is.na(p)) return("")
   if (p < 0.01) {
     paste("-> Strong evidence of", shape, "(p < 0.01)")
   } else if (p < 0.05) {

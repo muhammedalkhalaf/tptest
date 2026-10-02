@@ -9,11 +9,15 @@ twolines_test(data, x_var, y_var, split_point, form = "quadratic")
 \arguments{
 \item{data}{Data frame containing the variables}
 
-\item{x_var}{Name of the x variable (character)}
+\item{x_var}{Name of the x variable (character). For the log-quadratic
+form this is the \eqn{\ln x} column, the regressor used in the model.}
 
 \item{y_var}{Name of the y variable (character)}
 
-\item{split_point}{Point at which to split the data (usually the turning point)}
+\item{split_point}{Point at which to split the data (usually the turning
+point). For the log-quadratic form it is given in levels of \eqn{x}, as
+returned by \code{\link{tptest}}, and the split is made at
+\code{log(split_point)} on the \eqn{\ln x} column.}
 
 \item{form}{Functional form (for log-quadratic, split is in log-space)}
 }

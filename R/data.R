@@ -37,6 +37,6 @@
 #'
 #' @source Simulated data for demonstration purposes.
 #' @references
-#' Grossman, G. M., & Krueger, A. B. (1995). Economic growth and the environment.
+#' Grossman, G. M. and Krueger, A. B. (1995). Economic growth and the environment.
 #' \emph{Quarterly Journal of Economics}, 110(2), 353-377.
 "ekc"

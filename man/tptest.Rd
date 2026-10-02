@@ -19,15 +19,25 @@ tptest(
   bootstrap = FALSE,
   breps = 1000,
   data = NULL,
-  depvar = NULL
+  depvar = NULL,
+  bounds_scale = c("regressor", "levels"),
+  df = NULL
 )
 }
 \arguments{
-\item{model}{A fitted model object (e.g., from \code{lm}, \code{glm}).
-Alternatively, coefficients can be provided directly via \code{coefs}.}
+\item{model}{A fitted model object (e.g., from \code{lm}, \code{glm},
+\code{plm::plm}). Alternatively, coefficients can be provided directly
+via \code{coefs}.}
 
-\item{vars}{Character vector of length 2 or 3 specifying the variable names:
-\code{c("x", "x_sq")} for quadratic, \code{c("x", "x_sq", "x_cu")} for cubic.}
+\item{vars}{Character vector of length 2 or 3 giving the names of the
+coefficients of the regressors that carry the curvature, in this order:
+\code{c("x", "x_sq")} for the quadratic form, \code{c("x", "x_inv")}
+(the regressors \eqn{x} and \eqn{1/x}) for the inverse form,
+\code{c("lnx", "lnx_sq")} (the regressors \eqn{\ln x} and
+\eqn{(\ln x)^2}) for the log-quadratic form, and
+\code{c("x", "x_sq", "x_cu")} for the cubic form. The first name is
+also used to look up the regressor column when the data range is
+determined automatically.}
 
 \item{coefs}{Named numeric vector of coefficients. If provided, \code{model}
 is not required. Must include names matching \code{vars}.}
@@ -35,20 +45,25 @@ is not required. Must include names matching \code{vars}.}
 \item{vcov_mat}{Variance-covariance matrix for the coefficients. Required
 when \code{coefs} is provided.}
 
-\item{min}{Lower bound of the data interval. If \code{NULL}, extracted from
-the model data.}
+\item{min}{Lower bound of the interval \eqn{[x_l, x_h]} on which the test
+is carried out. If \code{NULL}, the minimum of the regressor named in
+\code{vars[1]} over the estimation sample is used. See
+\code{bounds_scale} for the scale of this argument.}
 
-\item{max}{Upper bound of the data interval. If \code{NULL}, extracted from
-the model data.}
+\item{max}{Upper bound of the interval; see \code{min}.}
 
 \item{form}{Functional form: \code{"auto"} (default), \code{"quadratic"},
-\code{"cubic"}, \code{"inverse"}, or \code{"logquadratic"}.}
+\code{"cubic"}, \code{"inverse"}, or \code{"logquadratic"}. With
+\code{"auto"}, two names in \code{vars} select the quadratic form and
+three names select the cubic form.}
 
-\item{level}{Confidence level for intervals (default 0.95).}
+\item{level}{Confidence level for intervals (default 0.95). The
+Sasabuchi test itself does not depend on \code{level}.}
 
 \item{delta}{Logical; compute delta-method SE and CI (default \code{TRUE}).}
 
-\item{fieller}{Logical; compute Fieller confidence interval (default \code{FALSE}).}
+\item{fieller}{Logical; compute Fieller confidence set (default \code{FALSE}).
+Available for the quadratic, inverse and log-quadratic forms.}
 
 \item{twolines}{Logical; perform Simonsohn (2018) two-lines test (default \code{FALSE}).}
 
@@ -56,46 +71,119 @@ the model data.}
 
 \item{breps}{Number of bootstrap replications (default 1000).}
 
-\item{data}{Optional data frame for two-lines test.}
+\item{data}{Optional data frame: the data used to fit \code{model}. It is
+required for the two-lines test and is used as a fallback to determine the
+data range when the regressor cannot be recovered from the model frame
+(rows dropped by the model's \code{na.action} are then excluded).}
 
 \item{depvar}{Name of dependent variable for two-lines test.}
+
+\item{bounds_scale}{Scale on which user-supplied \code{min} and \code{max}
+are given. \code{"regressor"} (default): the scale of the regressor named
+in \code{vars[1]}, that is \eqn{x} for the quadratic, inverse and cubic
+forms and \eqn{\ln x} for the log-quadratic form. \code{"levels"}: only
+meaningful for the log-quadratic form, \code{min} and \code{max} are
+given in levels of \eqn{x} and are log-transformed internally. The
+automatic range is always taken on the regressor scale.}
+
+\item{df}{Degrees of freedom for the t distribution used in the one-sided
+tests and in the critical values of the delta-method and Fieller
+intervals. \code{NULL} (default) selects automatically: the residual
+degrees of freedom of the model for \code{lm}-type models (including
+\code{plm}), and the normal distribution for \code{glm} objects, for
+models without \code{df.residual}, and for the \code{coefs} path.
+\code{Inf} forces the normal distribution; a finite number forces
+\eqn{t(df)}.}
 }
 \value{
 An object of class \code{"tptest"} containing:
 \describe{
-\item{tp}{Turning point estimate}
-\item{tp_se}{Delta-method standard error}
-\item{tp_ci}{Confidence interval for turning point}
-\item{shape}{Detected shape ("U shape" or "Inverse U shape")}
+\item{tp}{Turning point estimate. For the log-quadratic form it is
+reported in levels of \eqn{x}, \eqn{\exp(-b_1/(2 b_2))}.}
+\item{tp_se}{Delta-method standard error of \code{tp}}
+\item{tp_ci}{Delta-method confidence interval for the turning point. For
+the log-quadratic form the interval is computed on the \eqn{\ln x}
+scale and exponentiated.}
+\item{tp_log, tp_log_se}{Log-quadratic form only: turning point and its
+delta-method SE on the \eqn{\ln x} scale.}
+\item{shape}{Description of the fitted curve on the interval: "U shape",
+"Inverse U shape", or a monotone label when the extremum lies outside
+the interval (cubic form: see Details)}
+\item{alternative}{The alternative hypothesis tested by the Sasabuchi
+statistic ("U shape" or "Inverse U shape")}
 \item{model_form}{Functional form used}
-\item{sasabuchi}{List with Sasabuchi test results}
-\item{fieller}{Fieller interval (if requested)}
+\item{sasabuchi}{List with the Sasabuchi test results: slopes and
+t-statistics at the bounds, one-sided p-values, the overall statistic
+and its p-value, and a logical \code{outside} (extremum outside the
+interval). For the cubic form it also contains \code{segments}.}
+\item{fieller}{Fieller confidence set (if requested); see
+\code{\link{fieller_ci}}}
 \item{twolines}{Two-lines test results (if requested)}
 \item{bootstrap}{Bootstrap results (if requested)}
 \item{coefficients}{Named vector of relevant coefficients}
 \item{vcov}{Variance-covariance matrix}
-\item{bounds}{Data interval bounds}
+\item{bounds}{Interval bounds on the regressor scale}
+\item{bounds_levels}{Log-quadratic form only: the bounds in levels of \eqn{x}}
+\item{df}{Degrees of freedom used (\code{NULL} when the normal
+distribution is used)}
 }
 }
 \description{
 Tests for U-shaped or inverse U-shaped relationships using the
 Sasabuchi (1980) test as extended by Lind and Mehlum (2010).
-Supports quadratic, cubic, log-quadratic, and inverse functional forms.
+Supports quadratic, inverse and log-quadratic functional forms, and a
+cubic form with a segment-wise extension of the test.
 }
 \details{
-The function implements several approaches for testing non-monotonic relationships:
+\strong{Sasabuchi (1980) / Lind and Mehlum (2010) test.}
+With \eqn{y = \beta x + \gamma f(x)} and \eqn{f'} monotone on
+\eqn{[x_l, x_h]}, a U shape is implied by
+\eqn{\beta + \gamma f'(x_l) < 0 < \beta + \gamma f'(x_h)}. The null
+hypothesis (monotone or inverse U) is rejected at level \eqn{\alpha} when
+both one-sided t-tests reject at level \eqn{\alpha}; the overall statistic
+is \eqn{\min(-t_l, t_h)} for a U shape and \eqn{\min(t_l, -t_h)} for an
+inverse U shape, and its p-value is the upper tail probability of that
+minimum. The alternative (U or inverse U) is chosen from the sign of the
+change of the slope across the interval. When the fitted extremum lies
+outside the interval the statistic is negative and the null hypothesis
+cannot be rejected; the statistic and its p-value are still reported.
+The reported \code{p_min} and \code{p_max} are the one-sided p-values of
+the two component tests under the tested alternative.
 
-\strong{Sasabuchi (1980) / Lind-Mehlum (2010) Test:}
-Tests whether the relationship is U-shaped (or inverse U-shaped) by examining
-slopes at the interval boundaries. The null hypothesis is monotonicity or
-opposite U-shape.
+\strong{Distribution.} The t distribution with the model's residual
+degrees of freedom is used for \code{lm}-type models. For generalized
+linear models the test is only asymptotically valid (Lind and Mehlum 2010,
+Section 2), so the normal distribution is used; the same applies to the
+\code{coefs} path. The same distribution is used for the delta-method and
+Fieller critical values; see argument \code{df}.
 
-\strong{Functional Forms:}
+\strong{Functional forms:}
 \itemize{
 \item \strong{Quadratic:} \eqn{y = \beta_1 x + \beta_2 x^2}; turning point at \eqn{x^* = -\beta_1 / (2\beta_2)}
-\item \strong{Cubic:} \eqn{y = \beta_1 x + \beta_2 x^2 + \beta_3 x^3}; up to two turning points
 \item \strong{Inverse:} \eqn{y = \beta_1 x + \beta_2 / x}; turning point at \eqn{x^* = \sqrt{\beta_2 / \beta_1}}
-\item \strong{Log-quadratic:} \eqn{\ln(y) = \beta_1 \ln(x) + \beta_2 [\ln(x)]^2}
+(requires \eqn{\beta_2/\beta_1 > 0}; \eqn{\beta_1 > 0} gives a U shape,
+\eqn{\beta_1 < 0} an inverse U shape)
+\item \strong{Log-quadratic:} \eqn{y = \beta_1 \ln x + \beta_2 (\ln x)^2}.
+The regressors named in \code{vars} are \eqn{\ln x} and \eqn{(\ln x)^2}
+and all computations are those of the quadratic form in \eqn{\ln x}.
+The turning point is reported in levels, \eqn{x^* = \exp(-\beta_1/(2\beta_2))},
+with intervals transformed by \eqn{\exp}. The bounds are on the
+\eqn{\ln x} scale unless \code{bounds_scale = "levels"}.
+\item \strong{Cubic:} \eqn{y = \beta_1 x + \beta_2 x^2 + \beta_3 x^3}.
+Here \eqn{f'} is not monotone on an interval containing the inflection
+point, so the two-endpoint test of Lind and Mehlum (2010) does not
+apply to the whole interval (their footnote 3). As a package extension,
+the interval is split at the inflection point \eqn{-\beta_2/(3\beta_3)}
+when it lies inside, and the two-endpoint test is applied on each
+sub-interval, on which the slope is monotone. The results are returned
+in \code{sasabuchi$segments}. The split point is the estimated
+inflection point, treated as fixed, so the sub-interval tests do not
+have the exact size of the test in the paper; this extension is not
+part of Lind and Mehlum (2010). When the inflection point lies outside
+the interval the slope is monotone on the whole interval, the single
+segment is the test of equation (9) of Lind and Mehlum (2010) with
+\eqn{H = 3}, and \code{t_overall} and \code{p_overall} are reported;
+otherwise they are \code{NA}.
 }
 }
 \examples{
@@ -109,8 +197,8 @@ dat <- data.frame(y = y, x = x, x_sq = x^2)
 # Fit quadratic model
 fit <- lm(y ~ x + x_sq, data = dat)
 
-# Test for U-shape
-result <- tptest(fit, vars = c("x", "x_sq"), data = dat)
+# Test for U-shape (data range taken from the estimation sample)
+result <- tptest(fit, vars = c("x", "x_sq"))
 print(result)
 
 \donttest{
@@ -123,7 +211,7 @@ summary(result2)
 
 }
 \references{
-Lind, J. T., & Mehlum, H. (2010). With or without U? The appropriate test
+Lind, J. T. and Mehlum, H. (2010). With or without U? The appropriate test
 for a U-shaped relationship. \emph{Oxford Bulletin of Economics and Statistics},
 72(1), 109-118. \doi{10.1111/j.1468-0084.2009.00569.x}
 

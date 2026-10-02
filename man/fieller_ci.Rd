@@ -2,34 +2,84 @@
 % Please edit documentation in R/tptest.R
 \name{fieller_ci}
 \alias{fieller_ci}
-\title{Fieller Confidence Interval for Ratio of Coefficients}
+\title{Fieller Confidence Set for the Turning Point}
 \usage{
-fieller_ci(b1, b2, s11, s12, s22, level = 0.95, form = "quadratic")
+fieller_ci(b1, b2, s11, s12, s22, level = 0.95, form = "quadratic", df = NULL)
 }
 \arguments{
-\item{b1}{First coefficient}
+\item{b1}{First coefficient (\eqn{\beta_1})}
 
-\item{b2}{Second coefficient}
+\item{b2}{Second coefficient (\eqn{\beta_2})}
 
-\item{s11}{Variance of b1}
+\item{s11}{Variance of \code{b1}}
 
-\item{s12}{Covariance of b1 and b2}
+\item{s12}{Covariance of \code{b1} and \code{b2}}
 
-\item{s22}{Variance of b2}
+\item{s22}{Variance of \code{b2}}
 
-\item{level}{Confidence level}
+\item{level}{Confidence level (two-sided). Lind and Mehlum (2010) note
+that the test of a U shape at level \eqn{\alpha} corresponds to checking
+whether the \eqn{1 - 2\alpha} interval lies inside the data range.}
 
-\item{form}{Functional form ("quadratic" or "inverse")}
+\item{form}{Functional form: \code{"quadratic"} (\eqn{x^* = -b_1/(2 b_2)}),
+\code{"inverse"} (\eqn{x^* = \sqrt{b_2/b_1}}), or \code{"logquadratic"}
+(\eqn{x^* = \exp(-b_1/(2 b_2))}).}
+
+\item{df}{Degrees of freedom for the critical value: \code{NULL} (default)
+uses the normal distribution, a finite number uses \eqn{t(df)}.}
 }
 \value{
-A list with elements \code{lo}, \code{hi}, and \code{type}.
+A list with elements \code{lo}, \code{hi} and \code{type}:
+\describe{
+\item{\code{"bounded"}}{the set is the interval \code{[lo, hi]}. For the
+inverse and log-quadratic forms \code{lo = 0} means the set is
+\code{(0, hi]}.}
+\item{\code{"two_rays"}}{the set is the union of two rays,
+\code{(-Inf, lo]} and \code{[hi, Inf)} (\code{(0, lo]} and
+\code{[hi, Inf)} for the inverse and log-quadratic forms). This
+happens when the denominator coefficient is not significant at
+\code{level} but the discriminant is positive.}
+\item{\code{"ray"}}{the set is a half-line; one of \code{lo}, \code{hi}
+is infinite (or \code{lo = 0} for the positive forms).}
+\item{\code{"unbounded"}}{the set is the whole real line (whole positive
+line for the inverse and log-quadratic forms).}
+\item{\code{"empty"}}{inverse form only: no positive turning point is
+compatible with the data at \code{level}.}
+\item{\code{"not_applicable"}}{\code{form} is not supported.}
+}
 }
 \description{
-Computes the Fieller (1954) confidence interval for the turning point,
-which is more appropriate when the denominator coefficient has high uncertainty.
+Computes the Fieller (1954) confidence set for the turning point, which is
+exact for linear models and remains informative when the denominator
+coefficient is imprecisely estimated (Lind and Mehlum 2010, equation 8).
+}
+\details{
+The set for the ratio \eqn{\rho = n/d} of two coefficients is
+\eqn{\{\rho : (n - \rho d)^2 \le T^2 (s_{nn} - 2 \rho s_{nd} + \rho^2 s_{dd})\}},
+whose boundary points are
+\eqn{(n d - T^2 s_{nd} \pm T \sqrt{D}) / (d^2 - T^2 s_{dd})} with
+\eqn{D = (s_{nd}^2 - s_{nn} s_{dd}) T^2 + d^2 s_{nn} + n^2 s_{dd} - 2 n d s_{nd}}.
+For the quadratic form \eqn{\rho = b_1/b_2} and \eqn{x^* = -\rho/2}; for the
+inverse form \eqn{\rho = b_2/b_1} and \eqn{x^* = \sqrt{\rho}}, restricted to
+\eqn{\rho > 0}.
+}
+\examples{
+# Quadratic: b1 = -6, b2 = 0.55 with a precise b2 gives a bounded interval
+fieller_ci(-6, 0.55, s11 = 0.04, s12 = -0.003, s22 = 0.0004, level = 0.95)
+
+# Same with t(120) critical value
+fieller_ci(-6, 0.55, s11 = 0.04, s12 = -0.003, s22 = 0.0004, df = 120)
+
+# b2 not significant at 5 percent: the set is the union of two rays
+fieller_ci(-2, 0.15, s11 = 0.5, s12 = -0.05, s22 = 0.01)
+
 }
 \references{
 Fieller, E. C. (1954). Some problems in interval estimation.
 \emph{Journal of the Royal Statistical Society: Series B}, 16(2), 175-185.
 \doi{10.1111/j.2517-6161.1954.tb00159.x}
+
+Lind, J. T. and Mehlum, H. (2010). With or without U? The appropriate test
+for a U-shaped relationship. \emph{Oxford Bulletin of Economics and Statistics},
+72(1), 109-118. \doi{10.1111/j.1468-0084.2009.00569.x}
 }
