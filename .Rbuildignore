@@ -6,3 +6,4 @@
 ^SVARtca_references\.bib$
 ^cran-comments\.md$
 ^\.Rbuildignore$
+^\.zenodo\.json$
